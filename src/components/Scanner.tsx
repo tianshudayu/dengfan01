@@ -1,22 +1,81 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { apiFetch } from '../utils/api';
 
 interface ScannerProps {
   onNavigate: (view: string) => void;
 }
 
 export default function Scanner({ onNavigate }: ScannerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [streamActive, setStreamActive] = useState(false);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setStreamActive(true);
+      } catch (err) {
+        console.error("Camera access failed:", err);
+      }
+    };
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const handleCapture = async () => {
+    if (!videoRef.current || !canvasRef.current || !streamActive || isCapturing) return;
+
+    setIsCapturing(true);
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    try {
+      await apiFetch('/vision', {
+        method: 'POST',
+        body: JSON.stringify({ image: imageData })
+      });
+      onNavigate('RECIPE');
+    } catch (e) {
+      console.error(e);
+      alert('扫描失败');
+      setIsCapturing(false);
+    }
+  };
+
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-between bg-background-dark font-display">
       <div className="absolute inset-0 noise-bg opacity-5 pointer-events-none z-50"></div>
-      
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-80"
-        style={{
-          backgroundImage:
-            "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDLuNNEYJrj-5WDtEhH-5dITRsERpgqUe-ACmAYmVDWTRKAop5TCLwYqH2OZtqHfTdvCpbDG5nrR4h3J4AGQt9PvHsCqUl8W5SVzFzBE2P2hzeSQW93q0B5itf6ry8snwEMkOcrWrLjGJEQl5V8OQNB8SZ7OK2n4I7FN_PK55fJJ4-k7j5f8mVLrbqs-0HEFcCneab3zBsldScdTPbRolZraEc74-jlay4yjLFCeRGsFdPMP_Nu7oNNEu62ZWOavbDMT0ie90Ls')",
-        }}
-      >
-        <div className="absolute inset-0 bg-background-dark/40"></div>
+
+      <div className="absolute inset-0 z-0 bg-black">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover opacity-80"
+        />
+        <canvas ref={canvasRef} className="hidden" />
+        <div className="absolute inset-0 bg-background-dark/40 mix-blend-overlay"></div>
       </div>
 
       <div className="absolute inset-0 z-10 pointer-events-none p-6 flex flex-col justify-between">
@@ -99,14 +158,22 @@ export default function Scanner({ onNavigate }: ScannerProps) {
             </div>
             <span className="font-mono text-[10px] text-text-mute uppercase tracking-widest">闪光灯</span>
           </button>
-          
-          <button className="relative w-[72px] h-[72px] rounded-full border-2 border-primary bg-transparent flex items-center justify-center group outline-none active:scale-95 transition-transform duration-100" onClick={() => onNavigate('RECIPE')}>
+
+          <button
+            className={`relative w-[72px] h-[72px] rounded-full border-2 border-primary bg-transparent flex items-center justify-center group outline-none transition-transform duration-100 ${!streamActive || isCapturing ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
+            onClick={handleCapture}
+            disabled={!streamActive || isCapturing}
+          >
             <div className="w-[60px] h-[60px] rounded-full bg-primary/10 group-active:bg-primary transition-colors duration-150 flex items-center justify-center">
-              <div className="w-2 h-2 bg-primary rounded-full group-active:bg-background-dark"></div>
+              {isCapturing ? (
+                <div className="w-4 h-4 rounded-sm bg-primary animate-pulse"></div>
+              ) : (
+                <div className="w-2 h-2 bg-primary rounded-full group-active:bg-background-dark"></div>
+              )}
             </div>
             <div className="absolute -inset-3 border border-dashed border-text-main/20 rounded-full animate-spin [animation-duration:10s]"></div>
           </button>
-          
+
           <button className="group flex flex-col items-center gap-2 outline-none">
             <div className="w-12 h-12 rounded-full border border-border-color bg-background-dark/50 flex items-center justify-center group-hover:border-text-main transition-colors">
               <span className="material-symbols-outlined text-text-main text-[20px] group-active:text-primary">photo_library</span>

@@ -1,0 +1,11 @@
+name = "dengfan-os"
+compatibility_date = "2024-02-26"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dengfan-os-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[vars]
+# GEMINI_API_KEY 会在本地 .dev.vars 中设置，生产环境在 Cloudflare 控制台配置

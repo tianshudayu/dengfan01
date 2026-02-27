@@ -67,18 +67,24 @@ export default function Terminal({ onNavigate }: TerminalProps) {
         body: JSON.stringify({ query: userQuery })
       });
 
-      setQueries((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          type: 'system',
-          title: 'AI_RESPONSE',
-          ref: 'GENAI',
-          time: new Date().toLocaleTimeString('en-US', { hour12: false }),
-          query: userQuery,
-          content: response.text,
-        }
-      ]);
+      if (response && response.success && response.data) {
+        setQueries((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            type: 'system',
+            title: response.data.title || 'AI_RESPONSE',
+            ref: response.data.ref || 'GENAI',
+            time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+            query: userQuery,
+            content: response.data.content || '',
+            stats: response.data.stats,
+            action: response.data.action
+          }
+        ]);
+      } else {
+        throw new Error('Invalid response');
+      }
     } catch (error) {
       console.error(error);
       setQueries((prev) => [

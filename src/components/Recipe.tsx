@@ -11,6 +11,8 @@ export default function Recipe({ onNavigate }: RecipeProps) {
   const [newIngredientQuantity, setNewIngredientQuantity] = useState('');
   const [newIngredientAdded, setNewIngredientAdded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [recipeData, setRecipeData] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // 初次加载拉取数据
   useEffect(() => {
@@ -78,6 +80,21 @@ export default function Recipe({ onNavigate }: RecipeProps) {
     ));
   };
 
+  const handleGenerateRecipe = async () => {
+    try {
+      setIsGenerating(true);
+      const res = await apiFetch('/generate_recipe');
+      if (res && res.success) {
+        setRecipeData(res.recipe);
+      }
+    } catch (e) {
+      console.error("生成菜谱失败", e);
+      alert("生成失败，请确认是否添加了食材。");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background-dark relative">
       <header className="flex-none flex items-center justify-between px-4 py-4 border-b border-border-color bg-background-dark z-20">
@@ -99,48 +116,48 @@ export default function Recipe({ onNavigate }: RecipeProps) {
         <div className="relative w-full h-48 border-b border-border-color overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent z-10 opacity-80"></div>
           <img
-            alt="Mapo Tofu"
+            alt={recipeData ? recipeData.name : "Mapo Tofu"}
             className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 transition-all duration-700"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCy5FqmOiNJZDoJmT4UOt2vthX4l-nDhsjBU2hCNN8wdvSRJFBdosGF0c_atbFpBb9HeVEqeglA9Va5uZnX6uuYnhV5BnUPE-a1X_gQYStBYBn4hWpU7IuK0S_dGiA3l7dvhiIzatc4C1GRZRR-22jQUfLLw0KlClFrojPtEYV5wvBCrYmiXriPDnA8BzIFT27J6tq1VQ5KZG7w9ezoXdhQSYUqDtM55W9Ui9ECh140oIduOvrfajyngVdafTY9fw3wn8aspJuF"
           />
           <div className="absolute bottom-4 left-4 z-20">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-primary text-background-dark text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-sm uppercase">辛辣</span>
-              <span className="bg-surface border border-border-color text-text-mute text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-sm uppercase">川味</span>
-            </div>
-            <h2 className="font-display font-bold text-3xl tracking-tight leading-none">
-              Mapo Tofu <br /><span className="text-text-mute text-2xl">麻婆豆腐</span>
+            {recipeData && recipeData.tags && (
+              <div className="flex items-center gap-2 mb-1">
+                {recipeData.tags.map((tag: string, i: number) => (
+                  <span key={i} className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-sm uppercase ${i === 0 ? 'bg-primary text-background-dark' : 'bg-surface border border-border-color text-text-mute'}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <h2 className="font-display font-bold text-3xl tracking-tight leading-none text-text-main">
+              {recipeData ? recipeData.name : '等待 AI 生成菜谱...'}
             </h2>
           </div>
         </div>
 
-        <div className="sticky top-0 z-10 bg-background-dark/95 backdrop-blur-sm border-b border-border-color py-3 px-4">
-          <div className="flex space-x-3 overflow-x-auto scrollbar-hide pb-1">
+        <div className="sticky top-0 z-10 bg-background-dark/95 backdrop-blur-sm border-b border-border-color py-3 px-4 flex justify-between items-center">
+          <div className="flex space-x-3 overflow-x-auto scrollbar-hide pb-1 flex-1">
             <button className="flex-shrink-0 bg-text-main text-background-dark px-4 py-2 rounded-sm border border-text-main transition-transform active:scale-95">
               <div className="flex flex-col items-start leading-none gap-1">
-                <span className="font-display font-bold text-xs uppercase tracking-widest">快速</span>
-                <span className="font-mono text-[10px] font-medium">10 分钟</span>
+                <span className="font-display font-bold text-xs uppercase tracking-widest">时间</span>
+                <span className="font-mono text-[10px] font-medium">{recipeData ? recipeData.time : '-- 分钟'}</span>
               </div>
             </button>
             <button className="flex-shrink-0 bg-transparent text-text-mute px-4 py-2 rounded-sm border border-border-color hover:border-primary/50 hover:text-primary transition-colors">
               <div className="flex flex-col items-start leading-none gap-1">
                 <span className="font-display font-bold text-xs uppercase tracking-widest">健康</span>
-                <span className="font-mono text-[10px] font-medium">300 千卡</span>
-              </div>
-            </button>
-            <button className="flex-shrink-0 bg-transparent text-text-mute px-4 py-2 rounded-sm border border-border-color hover:border-primary/50 hover:text-primary transition-colors">
-              <div className="flex flex-col items-start leading-none gap-1">
-                <span className="font-display font-bold text-xs uppercase tracking-widest">舒适</span>
-                <span className="font-mono text-[10px] font-medium">丰富</span>
-              </div>
-            </button>
-            <button className="flex-shrink-0 bg-transparent text-text-mute px-4 py-2 rounded-sm border border-border-color hover:border-primary/50 hover:text-primary transition-colors">
-              <div className="flex flex-col items-start leading-none gap-1">
-                <span className="font-display font-bold text-xs uppercase tracking-widest">纯素</span>
-                <span className="font-mono text-[10px] font-medium">无肉</span>
+                <span className="font-mono text-[10px] font-medium">{recipeData ? recipeData.calories + ' 千卡' : '-- 千卡'}</span>
               </div>
             </button>
           </div>
+          <button
+            onClick={handleGenerateRecipe}
+            disabled={isGenerating || ingredients.length === 0}
+            className="flex-shrink-0 ml-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2 rounded-sm text-xs font-mono transition-colors disabled:opacity-50"
+          >
+            {isGenerating ? 'AI 生成中...' : 'AI 一键生成'}
+          </button>
         </div>
 
         <div className="p-4 space-y-8 pb-24">
@@ -220,92 +237,55 @@ export default function Recipe({ onNavigate }: RecipeProps) {
           <section>
             <div className="flex items-center justify-between mb-6 border-b border-border-color pb-1">
               <h3 className="font-mono text-xs text-text-mute uppercase tracking-widest">过程 // 执行</h3>
-              <span className="font-mono text-xs text-primary">4 步</span>
+              <span className="font-mono text-xs text-primary">{recipeData?.steps?.length || 0} 步</span>
             </div>
-            <div className="relative space-y-0 pl-2">
-              <div className="absolute left-[19px] top-2 bottom-4 w-px bg-border-color"></div>
-
-              <div className="relative pl-10 pb-8 group">
-                <div className="absolute left-0 top-0 w-10 flex justify-center bg-background-dark z-10 py-1">
-                  <span className="font-mono text-primary font-bold text-lg">01</span>
-                </div>
-                <div className="pt-1.5">
-                  <h4 className="font-display font-bold text-text-main text-base mb-1">准备</h4>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                    沥干豆腐。切成 <span className="text-text-main font-medium border-b border-dotted border-text-mute">2厘米的方块</span>。将大蒜和生姜切碎。
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative pl-10 pb-8 group">
-                <div className="absolute left-0 top-0 w-10 flex justify-center bg-background-dark z-10 py-1">
-                  <span className="font-mono text-primary font-bold text-lg">02</span>
-                </div>
-                <div className="pt-1.5">
-                  <h4 className="font-display font-bold text-text-main text-base mb-1">焯水</h4>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                    烧开水并加少许盐。小心地将豆腐块焯水使其定型。
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-2 bg-surface hover:bg-text-main/10 border border-primary/30 text-primary px-3 py-1.5 rounded-sm transition-colors group/btn">
-                      <span className="material-symbols-outlined text-[16px] animate-pulse">timer</span>
-                      <span className="font-mono text-xs font-bold">02:00</span>
-                    </button>
-                    <span className="text-xs text-text-mute font-mono">100°C</span>
+            {recipeData ? (
+              <div className="relative space-y-0 pl-2">
+                <div className="absolute left-[19px] top-2 bottom-4 w-px bg-border-color"></div>
+                {recipeData.steps.map((step: any, index: number) => (
+                  <div key={index} className="relative pl-10 pb-8 group">
+                    <div className="absolute left-0 top-0 w-10 flex justify-center bg-background-dark z-10 py-1">
+                      <span className="font-mono text-primary font-bold text-lg">0{index + 1}</span>
+                    </div>
+                    <div className="pt-1.5">
+                      <h4 className="font-display font-bold text-text-main text-base mb-1">{step.title}</h4>
+                      <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                        {step.content}
+                      </p>
+                      {(step.timer || step.temp) && (
+                        <div className="flex items-center gap-2">
+                          {step.timer && (
+                            <button className="flex items-center gap-2 bg-surface hover:bg-text-main/10 border border-primary/30 text-primary px-3 py-1.5 rounded-sm transition-colors group/btn">
+                              <span className="material-symbols-outlined text-[16px] animate-pulse">timer</span>
+                              <span className="font-mono text-xs font-bold">{step.timer}</span>
+                            </button>
+                          )}
+                          {step.temp && <span className="text-xs text-text-mute font-mono">{step.temp}</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-
-              <div className="relative pl-10 pb-8 group">
-                <div className="absolute left-0 top-0 w-10 flex justify-center bg-background-dark z-10 py-1">
-                  <span className="font-mono text-primary font-bold text-lg">03</span>
-                </div>
-                <div className="pt-1.5">
-                  <h4 className="font-display font-bold text-text-main text-base mb-1">炒香</h4>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                    热锅烧油。将肉末炒至酥脆。加入豆瓣酱和花椒。炒出红油。
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-2 bg-surface hover:bg-text-main/10 border border-primary/30 text-primary px-3 py-1.5 rounded-sm transition-colors">
-                      <span className="material-symbols-outlined text-[16px]">timer</span>
-                      <span className="font-mono text-xs font-bold">03:00</span>
-                    </button>
-                    <span className="text-xs text-text-mute font-mono">大火</span>
-                  </div>
-                </div>
+            ) : (
+              <div className="text-center text-text-mute text-sm font-mono py-8">
+                点击上方“AI 一键生成”根据可用库存生成菜谱。
               </div>
-
-              <div className="relative pl-10 pb-2 group">
-                <div className="absolute left-0 top-0 w-10 flex justify-center bg-background-dark z-10 py-1">
-                  <span className="font-mono text-primary font-bold text-lg">04</span>
-                </div>
-                <div className="pt-1.5">
-                  <h4 className="font-display font-bold text-text-main text-base mb-1">炖煮勾芡</h4>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                    加水和豆腐。炖煮。分3次加入水淀粉勾芡。
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-2 bg-surface hover:bg-text-main/10 border border-primary/30 text-primary px-3 py-1.5 rounded-sm transition-colors">
-                      <span className="material-symbols-outlined text-[16px]">timer</span>
-                      <span className="font-mono text-xs font-bold">05:00</span>
-                    </button>
-                    <span className="text-xs text-text-mute font-mono">关小火</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </section>
 
-          <div className="mt-8 border border-border-color bg-surface/50 p-4 rounded-sm flex justify-between items-center">
-            <div>
-              <div className="text-xs text-text-mute font-mono mb-1">总时间</div>
-              <div className="text-xl font-display font-bold text-text-main">14分 30秒</div>
+          {recipeData && (
+            <div className="mt-8 border border-border-color bg-surface/50 p-4 rounded-sm flex justify-between items-center">
+              <div>
+                <div className="text-xs text-text-mute font-mono mb-1">总时间</div>
+                <div className="text-xl font-display font-bold text-text-main">{recipeData.time}</div>
+              </div>
+              <div>
+                <div className="text-xs text-text-mute font-mono mb-1 text-right">卡路里</div>
+                <div className="text-xl font-display font-bold text-text-main text-right">{recipeData.calories} <span className="text-xs font-normal text-text-mute">千卡</span></div>
+              </div>
             </div>
-            <div>
-              <div className="text-xs text-text-mute font-mono mb-1 text-right">卡路里</div>
-              <div className="text-xl font-display font-bold text-text-main text-right">420 <span className="text-xs font-normal text-text-mute">千卡</span></div>
-            </div>
-          </div>
+          )}
         </div>
       </main>
 
